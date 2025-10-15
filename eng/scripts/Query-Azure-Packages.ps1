@@ -72,17 +72,13 @@ function Get-java-Packages
   
   foreach ($tag in $repoTags.Keys)
   {
-    $pkg = $repoTags[$tag]
-    $artifactId = $pkg.Package
-    if ($pkg.PSObject.Members.Name -contains "ArtifactId") { $artifactId = $pkg.ArtifactId }
-
-    $groupId = "com.azure"
-    if ($pkg.PSObject.Members.Name -contains "GroupId") { $groupId = $pkg.GroupId }
-    elseif ($artifactId.StartsWith("azure-resourcemanager-")) { $groupId = "com.azure.resourcemanager" }
+    $artifactId = $tag
+    if ($tag.Contains("+")) {
+      $_, $artifactId = $tag -split "+"
+    }
 
     if ($packages.Package -notcontains $artifactId) {
-      $version = [AzureEngSemanticVersion]::SortVersions($pkg.Versions)[0]
-      Write-Host "${groupId}+${artifactId}_${version} - Didn't find this package using the maven search $baseMavenQueryUrl."
+      Write-Host "${tag} - Didn't find this package using the maven search $baseMavenQueryUrl."
     }
   }
 
