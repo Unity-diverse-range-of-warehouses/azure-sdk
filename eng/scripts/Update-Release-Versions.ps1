@@ -219,7 +219,17 @@ function Update-Packages($lang, $packageList, $langVersions, $langLinkTemplates)
   foreach ($pkg in $packageList)
   {
     $pkgVersion = $null
-    if ($langVersions.ContainsKey($pkg.Package)) {
+    
+    if ($pkg.PSObject.Properties.Name -contains "GroupId" -and $langVersions.ContainsKey("$($pkg.GroupId)+$($pkg.Package)")) {
+      # Some java packages use the GroupId+Package as the tag name so check for that case
+      $pkgVersion = $langVersions["$($pkg.GroupId)+$($pkg.Package)"]
+
+      if($pkg.RepoPath -match "^https://github.com/Azure/azure-sdk-for-java/tree/item.Package_item.Version/sdk/(?<serviceDirectory>.*)/item.Package/") {
+        # Reset the RepoPath to just the service directory if we have shipped a new version because it should now follow the new GroupId+Package format
+        $pkg.RepoPath = $matches["serviceDirectory"]
+      }
+    }
+    elseif ($langVersions.ContainsKey($pkg.Package)) {
       $pkgVersion = $langVersions[$pkg.Package]
     }
     elseif ($langVersions.ContainsKey("")) {
@@ -231,11 +241,6 @@ function Update-Packages($lang, $packageList, $langVersions, $langLinkTemplates)
       Write-Verbose "Skipping update for $($pkg.Package) as we don't have version info for it. "
       CheckOptionalLinks $langLinkTemplates $pkg
       continue;
-    }
-
-    if($lang -eq "java" -and $pkg.RepoPath -match "^https://github.com/Azure/azure-sdk-for-java/tree/item.Package_item.Version/sdk/(?<serviceDirectory>.*)/item.Package/") {
-      # Reset the RepoPath to just the service directory if we have shipped a new version because it should now follow the new GroupId+Package format
-      $pkg.RepoPath = $matches["serviceDirectory"]
     }
 
     # Compute the latest versions based on the current versions plus any new versions
